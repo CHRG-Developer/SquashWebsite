@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Squash Club</title>
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/"><span>SC</span> Squash Club</a>
+  <nav><a href="#book">Book</a><a href="#credits">Credits</a><a href="#ladder">Ladder</a><a href="/admin.html">Admin</a></nav>
+  <button id="login-button" class="outline">Sign in</button>
+</header>
+<main>
+  <section class="hero">
+    <div><p class="eyebrow">YOUR CLUB, YOUR COURT</p><h1>Get on court.</h1>
+      <p>Book courts, manage credits and compete in the club ladder from any device.</p>
+      <a class="button" href="#book">View court times</a></div>
+    <aside><strong id="balance">—</strong><span>credit balance</span><hr>
+      <strong id="membership">Sign in</strong><span>membership status</span></aside>
+  </section>
+  <section id="book" class="panel">
+    <div class="section-title"><div><p class="eyebrow">COURT DIARY</p><h2>Book a court</h2></div>
+      <input id="date" type="date" aria-label="Booking date"></div>
+    <div id="availability" class="empty">Sign in to load live court availability.</div>
+  </section>
+  <div class="columns">
+    <section id="credits" class="panel"><p class="eyebrow">ACCOUNT</p><h2>Credits & membership</h2>
+      <div id="account">Your purchases, ledger and renewal options appear here after sign in.</div></section>
+    <section id="ladder" class="panel"><p class="eyebrow">COMPETE</p><h2>Club ladder</h2>
+      <div id="ladders">Active standings and challenges appear here.</div></section>
+  </div>
+</main>
+<dialog id="login"><form id="login-form" method="dialog"><button class="close" value="cancel">×</button>
+  <p class="eyebrow">MEMBER ACCESS</p><h2>Welcome back</h2><label>Email<input name="email" type="email" required></label>
+  <label>Password<input name="password" type="password" required></label><p id="login-error" class="error"></p>
+  <button type="submit">Sign in</button></form></dialog>
+<dialog id="confirm"><form id="booking-form" method="dialog"><button class="close" value="cancel">×</button>
+  <h2>Confirm court</h2><p id="selected-slot"></p><label>Opponent ID (optional)<input name="opponent"></label>
+  <label>Payment<select name="payment"><option value="SingleMember">Pay all credits</option><option value="Split">Split credits</option></select></label>
+  <p id="booking-error" class="error"></p><button type="submit">Confirm booking</button></form></dialog>
+<script src="/site.js"></script>
+</body></html>
