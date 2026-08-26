@@ -22,6 +22,27 @@ public class FeatureServiceTests
     }
 
     [Fact]
+    public async Task Availability_identifies_the_member_who_booked_a_court()
+    {
+        await using var fixture = new Fixture(); await fixture.Init();
+        fixture.Member.FirstName = "Alex"; fixture.Member.LastName = "Morgan";
+        var opening = await fixture.Db.OpeningHours.SingleAsync();
+        opening.Opens = TimeOnly.FromDateTime(fixture.Clock.Now.AddHours(1));
+        opening.Closes = opening.Opens.AddMinutes(fixture.Options.SlotMinutes);
+        await fixture.Db.SaveChangesAsync();
+        await fixture.Booking().BookAsync(new(fixture.Member.Id, fixture.Court.Id,
+            fixture.Clock.Now.AddHours(1)));
+
+        var slot = Assert.Single(await new CourtAvailabilityService(fixture.Db, fixture.Options)
+            .GetAsync(DateOnly.FromDateTime(fixture.Clock.Now)));
+
+        Assert.False(slot.Available);
+        Assert.Equal("Booked", slot.Reason);
+        Assert.Equal($"{fixture.Member.FirstName} {fixture.Member.LastName}",
+            slot.BookedByMemberName);
+    }
+
+    [Fact]
     public async Task Same_day_released_slot_queues_alert_without_reserving_it()
     {
         await using var fixture = new Fixture(); await fixture.Init();

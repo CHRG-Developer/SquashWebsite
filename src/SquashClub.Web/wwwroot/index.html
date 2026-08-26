@@ -10,6 +10,7 @@
 <header>
   <a class="brand" href="/"><span>SC</span> Squash Club</a>
   <nav><a href="#book">Book</a><a href="#credits">Credits</a><a href="#ladder">Ladder</a><a href="/admin.html">Admin</a></nav>
+  <div class="account-actions"><button id="register-button" class="outline">Sign up</button><button id="login-button" class="outline">Sign in</button></div>
   <button id="login-button" class="outline">Sign in</button>
 </header>
 <main>
@@ -32,13 +33,20 @@
       <div id="ladders">Active standings and challenges appear here.</div></section>
   </div>
 </main>
-<dialog id="login"><form id="login-form" method="dialog"><button class="close" value="cancel">×</button>
+<dialog id="login"><form id="login-form"><button class="close" type="button" data-close="login" aria-label="Close sign in">×</button>
   <p class="eyebrow">MEMBER ACCESS</p><h2>Welcome back</h2><label>Email<input name="email" type="email" required></label>
   <label>Password<input name="password" type="password" required></label><p id="login-error" class="error"></p>
   <button type="submit">Sign in</button></form></dialog>
-<dialog id="confirm"><form id="booking-form" method="dialog"><button class="close" value="cancel">×</button>
+<dialog id="register"><form id="register-form"><button class="close" type="button" data-close="register" aria-label="Close sign up">×</button>
+  <p class="eyebrow">NEW MEMBER</p><h2>Create account</h2>
+  <div class="form-row"><label>First name<input name="firstName" required></label><label>Last name<input name="lastName" required></label></div>
+  <label>Email<input name="email" type="email" required></label><label>Phone<input name="phoneNumber" type="tel"></label>
+  <label>Password<input name="password" type="password" minlength="10" required></label>
+  <p class="hint">Use at least 10 characters. You will need to confirm your email before signing in.</p>
+  <p id="register-message" class="error" role="status"></p><button type="submit">Create account</button></form></dialog>
+<dialog id="confirm"><form id="booking-form"><button class="close" type="button" data-close="confirm" aria-label="Close booking">×</button>
   <h2>Confirm court</h2><p id="selected-slot"></p><label>Opponent ID (optional)<input name="opponent"></label>
   <label>Payment<select name="payment"><option value="SingleMember">Pay all credits</option><option value="Split">Split credits</option></select></label>
-  <p id="booking-error" class="error"></p><button type="submit">Confirm booking</button></form></dialog>
+  <p id="booking-error" class="error" role="status"></p><button id="confirm-booking-button" type="submit">Confirm booking</button></form></dialog>
 <script src="/site.js"></script>
 </body></html>
