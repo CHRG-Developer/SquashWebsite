@@ -6,7 +6,8 @@ using SquashClub.Web.Domain;
 namespace SquashClub.Web.Services;
 
 public sealed record AvailabilitySlot(Guid CourtId, string CourtName, DateTime StartsAtUtc,
-    DateTime EndsAtUtc, bool IsPeak, int CostUnits, bool Available, string? Reason);
+    DateTime EndsAtUtc, bool IsPeak, int CostUnits, bool Available, string? Reason,
+    string? BookedByMemberName = null);
 
 public interface ICourtAvailabilityService
 {
@@ -28,7 +29,11 @@ public sealed class CourtAvailabilityService(ClubDbContext db, ClubOptions optio
         var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, timezone);
         var utcClose = TimeZoneInfo.ConvertTimeToUtc(localClose, timezone);
         var bookings = await db.Bookings.Where(x => x.Status == BookingStatus.Confirmed &&
-            x.StartsAtUtc < utcClose && x.EndsAtUtc > utcStart).ToListAsync(ct);
+            x.StartsAtUtc < utcClose && x.EndsAtUtc > utcStart)
+            .Join(db.Users, booking => booking.PrimaryMemberId, member => member.Id,
+                (booking, member) => new { Booking = booking,
+                    MemberName = member.FirstName + " " + member.LastName })
+            .ToListAsync(ct);
         var closures = await db.CourtClosures.Where(x => x.StartsAtUtc < utcClose &&
             x.EndsAtUtc > utcStart).ToListAsync(ct);
         var peaks = await db.PeakPeriods.Where(x => x.Day == date.DayOfWeek).ToListAsync(ct);
@@ -45,11 +50,13 @@ public sealed class CourtAvailabilityService(ClubDbContext db, ClubOptions optio
             {
                 var closure = closures.Any(x => (x.CourtId is null || x.CourtId == court.Id) &&
                     x.StartsAtUtc < end && x.EndsAtUtc > start);
-                var booked = bookings.Any(x => x.CourtId == court.Id && x.StartsAtUtc < end &&
-                    x.EndsAtUtc > start);
+                var booking = bookings.FirstOrDefault(x => x.Booking.CourtId == court.Id &&
+                    x.Booking.StartsAtUtc < end && x.Booking.EndsAtUtc > start);
+                var booked = booking is not null;
                 result.Add(new(court.Id, court.Name, start, end, peak is not null,
                     peak?.CostUnits ?? options.OffPeakCostUnits, !closure && !booked,
-                    closure ? "Closed" : booked ? "Booked" : null));
+                    closure ? "Closed" : booked ? "Booked" : null,
+                    booked ? booking!.MemberName : null));
             }
         }
         return result;

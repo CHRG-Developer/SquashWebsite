@@ -36,16 +36,25 @@ public static class ApplicationEndpoints
             await db.Users.OrderBy(x => x.LastName).Select(x => new { x.Id, x.FirstName,
                 x.LastName, x.Email, x.AccountEnabled, x.CreditBalanceUnits }).ToListAsync(ct));
         admin.MapPost("/members/{id:guid}/credits", AdminCredit);
+        admin.MapGet("/courts", async (ClubDbContext db, CancellationToken ct) =>
+            await db.Courts.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name).ToListAsync(ct));
         admin.MapPost("/courts", CreateCourt);
         admin.MapPut("/courts/{id:guid}", UpdateCourt);
+        admin.MapDelete("/courts/{id:guid}", RemoveCourt);
         admin.MapPost("/closures", CreateClosure);
         admin.MapPost("/opening-hours", UpsertOpeningHours);
         admin.MapPost("/peak-periods", CreatePeakPeriod);
         admin.MapPost("/membership-products", CreateMembershipProduct);
         admin.MapPost("/credit-packages", CreateCreditPackage);
         admin.MapGet("/bookings", async (ClubDbContext db, CancellationToken ct) =>
-            await db.Bookings.Include(x => x.Court).OrderByDescending(x => x.StartsAtUtc)
-                .Take(500).ToListAsync(ct));
+            await db.Bookings.OrderByDescending(x => x.StartsAtUtc).Take(500)
+                .Select(x => new { x.Id, x.StartsAtUtc, x.EndsAtUtc, x.Status,
+                    CourtName = x.Court.Name,
+                    MemberName = db.Users.Where(member => member.Id == x.PrimaryMemberId)
+                        .Select(member => member.FirstName + " " + member.LastName).Single(),
+                    OpponentName = db.Users.Where(member => member.Id == x.OpponentMemberId)
+                        .Select(member => member.FirstName + " " + member.LastName).SingleOrDefault() })
+                .ToListAsync(ct));
         admin.MapGet("/lighting", async (ClubDbContext db, CancellationToken ct) =>
             await db.Courts.Select(x => new { x.Id, x.Name, x.LightingEnabled,
                 Session = db.LightingSessions.Where(s => s.CourtId == x.Id &&
@@ -98,7 +107,12 @@ public static class ApplicationEndpoints
                 await notifications.QueueAsync(dto.OpponentMemberId.Value,
                     NotificationType.SplitApprovalRequest, "Split payment approval",
                     "Approve your court-credit share from your dashboard.", ct);
-            return Results.Created($"/api/member/bookings/{booking.Id}", booking);
+            // Do not serialize the tracked entity graph (shares point back to their booking).
+            return Results.Created($"/api/member/bookings/{booking.Id}", new
+            {
+                booking.Id, booking.CourtId, booking.StartsAtUtc, booking.EndsAtUtc,
+                booking.CreditCostUnits, booking.PaymentMode, booking.SplitStatus
+            });
         }
         catch (ClubRuleException ex) { return RuleError(ex); }
     }
@@ -194,6 +208,15 @@ public static class ApplicationEndpoints
       court.Name = dto.Name; court.Description = dto.Description; court.DisplayOrder = dto.DisplayOrder;
       court.Active = dto.Active; court.LightingEnabled = dto.LightingEnabled;
       court.LightingDeviceId = dto.LightingDeviceId; await db.SaveChangesAsync(ct); return Results.Ok(court); }
+    static async Task<IResult> RemoveCourt(Guid id, ClubDbContext db, CancellationToken ct)
+    {
+      var court = await db.Courts.FindAsync([id], ct);
+      if (court is null) return Results.NotFound();
+      // Preserve booking and audit history. "Removing" a court retires it from all member booking views.
+      court.Active = false;
+      await db.SaveChangesAsync(ct);
+      return Results.NoContent();
+    }
     static async Task<IResult> CreateClosure(ClosureDto dto, ClubDbContext db, CancellationToken ct)
     { if (dto.EndsAtUtc <= dto.StartsAtUtc) return Results.ValidationProblem(new Dictionary<string,string[]>{{"endsAtUtc",["End must follow start."]}});
       var closure = new CourtClosure { Id = Guid.NewGuid(), CourtId = dto.CourtId,
